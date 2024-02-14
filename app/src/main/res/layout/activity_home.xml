@@ -7,15 +7,74 @@
     android:background="@drawable/login_bg_geo"
     tools:context=".HomeActivity">
 
-    <Button
-        android:id="@+id/btn_sign_out"
+    <TextView
+        android:id="@+id/tv_user_dashboard"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Signout"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        android:layout_marginTop="50dp"
+        android:textColor="#1E232C"
+        android:textStyle="bold"
+        android:textSize="36sp"
+        android:text="Dashboard"
         />
-    
+
+    <LinearLayout
+        android:id="@+id/ll_buttons"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@id/tv_user_dashboard"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        android:layout_marginTop="20dp"
+        android:orientation="horizontal"
+        >
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_sign_out"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Signout"
+            android:layout_marginBottom="56dp"
+            android:background="@drawable/gmail_bg"
+            android:elevation="8dp"
+            android:layout_margin="16dp"
+            />
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_check_in"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Check In"
+            android:layout_marginBottom="56dp"
+            android:background="@drawable/gmail_bg"
+            android:elevation="8dp"
+            android:layout_margin="16dp"
+            />
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_check_out"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Check Out"
+            android:layout_marginBottom="56dp"
+            android:background="@drawable/gmail_bg"
+            android:elevation="8dp"
+            android:layout_margin="16dp"
+            />
+    </LinearLayout>
+
+
+    <TextView
+        android:id="@+id/check_in_time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toTopOf="parent"
+        android:layout_marginTop="300dp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        android:textColor="@color/black"
+        android:background="@drawable/gmail_bg"
+        android:text="CheckInTime"
+        />
+
 </androidx.constraintlayout.widget.ConstraintLayout>
