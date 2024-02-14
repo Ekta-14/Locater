@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <!-- Customize your theme here -->
+        <!--        <item name="android:windowIsTranslucent">true</item>-->
+
+
+        <item name="android:windowSplashScreenAnimatedIcon">@android:color/transparent</item>
+        <item name="android:windowBackground">@drawable/splash_screen</item>
+        <!--        <item name="android:windowBackground">@android:color/transparent</item>-->
+    </style>
+</resources>
