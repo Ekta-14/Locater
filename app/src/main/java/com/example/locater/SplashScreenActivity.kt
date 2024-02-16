@@ -4,8 +4,9 @@ import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Handler
-import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
+import com.example.locater.constant.SharedPrefObject
+import com.example.locater.constant.SharedprefConstant
 
 class SplashScreenActivity : AppCompatActivity()
 {
@@ -17,7 +18,7 @@ class SplashScreenActivity : AppCompatActivity()
 
         SharedPrefObject.init(this)
         Handler().postDelayed({
-            val success=SharedPrefObject.getBooleanLogin(SharedprefConstant.isUserLoggedIn)
+            val success= SharedPrefObject.getBooleanLogin(SharedprefConstant.isUserLoggedIn)
             if(success) {
                 startActivity(Intent(this, HomeActivity::class.java))
                 finish()

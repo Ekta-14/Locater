@@ -2,6 +2,9 @@ plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
     id 'com.google.gms.google-services'
+    //room
+    id 'kotlin-kapt'
+
 }
 
 android {
@@ -51,4 +54,19 @@ dependencies {
     //google play srvie
     implementation 'com.google.android.gms:play-services-location:21.1.0'
 
+    //viewModel
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0")
+    // alternately - if using Java8, use the following instead of lifecycle-compiler
+    implementation("androidx.lifecycle:lifecycle-common-java8:2.7.0")
+
+    //room
+//    implementation("androidx.room:room-runtime:2.6.1")
+//    annotationProcessor("androidx.room:room-compiler:2.6.1")
+    implementation "androidx.room:room-runtime:2.6.1"
+    kapt "androidx.room:room-compiler:2.6.1" // For annotation processing
+    implementation "androidx.room:room-ktx:2.6.1" // Kotlin extensions
+
+    //corotuine
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3" // Core coroutine functionality
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3" // Android specific functionality
 }

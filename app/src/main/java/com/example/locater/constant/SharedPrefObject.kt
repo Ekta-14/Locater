@@ -1,4 +1,4 @@
-package com.example.locater
+package com.example.locater.constant
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -22,6 +22,15 @@ object SharedPrefObject {
     fun getBooleanLogin(key: String):Boolean
     {
         return preferences.getBoolean(key,false)
+    }
+
+    fun putLastEnabledButton(key: String, btn:Int)
+    {
+        preferences.edit().putInt(SharedprefConstant.last_enabled_button,btn).apply()
+    }
+    fun getLastEnabledButton():Int
+    {
+       return  preferences.getInt(SharedprefConstant.last_enabled_button,-1)
     }
 
 }
