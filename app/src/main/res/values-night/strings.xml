@@ -3,4 +3,5 @@
     <string name="login_using_google_account">Login using google account</string>
     <string name="your_web_client_id">514098561025-7a729bv6pesbcdtp16o63s6n1pjl51du.apps.googleusercontent.com</string>
     <string name="login">Login</string>
+    <string name="toggle_button">Change company location</string>
 </resources>

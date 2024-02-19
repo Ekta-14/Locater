@@ -144,7 +144,7 @@
         app:layout_constraintTop_toBottomOf="@id/ll_tv"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/btn_clear_all"
         android:orientation="horizontal"
         >
         <androidx.recyclerview.widget.RecyclerView
@@ -157,18 +157,42 @@
             />
     </ScrollView>
 
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/btn_clear_all"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Clear All"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/scroll"
+        app:layout_constraintRight_toLeftOf="@id/ll_toggle"
+        android:layout_marginBottom="56dp"
+        android:background="@drawable/gmail_bg"
+        android:elevation="8dp"
+        android:layout_margin="12dp"
+        />
+<LinearLayout
+    android:id="@+id/ll_toggle"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    app:layout_constraintTop_toBottomOf="@id/scroll"
+    app:layout_constraintLeft_toRightOf="@id/btn_clear_all"
+    app:layout_constraintRight_toRightOf="parent"
+    android:weightSum="2"
+    app:layout_constraintBottom_toBottomOf="parent">
+    <TextView
+        android:id="@+id/toggle_button_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:layout_weight="1"
+        android:text="@string/toggle_button" />
 
-    <!--    <TextView-->
-<!--        android:id="@+id/check_in_time"-->
-<!--        android:layout_width="wrap_content"-->
-<!--        android:layout_height="wrap_content"-->
-<!--        app:layout_constraintTop_toTopOf="parent"-->
-<!--        android:layout_marginTop="300dp"-->
-<!--        app:layout_constraintLeft_toLeftOf="parent"-->
-<!--        app:layout_constraintRight_toRightOf="parent"-->
-<!--        android:textColor="@color/black"-->
-<!--        android:background="@drawable/gmail_bg"-->
-<!--        android:text="CheckInTime"-->
-<!--        />-->
+    <androidx.appcompat.widget.SwitchCompat
+        android:id="@+id/switch_toggle"
+        android:layout_width="wrap_content"
+        android:layout_weight="1"
+        android:layout_height="wrap_content"/>
+</LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

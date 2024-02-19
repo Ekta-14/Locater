@@ -9,6 +9,7 @@ import android.widget.Button
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.SwitchCompat
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -34,17 +35,18 @@ import java.util.Locale
 class HomeActivity : AppCompatActivity() {
     companion object {
         private const val LOCATION_PERMISSION_REQUEST_CODE = 100
-        private const val company_latitude = 28.4197
-        private const val company_longitude = 77.0386
+        private var company_latitude = 28.4197
+        private var company_longitude = 77.0386
         private const val allowed_radius = 50.0
     }
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: RecyclerAdapter
-    private var const_id:Int=0
     lateinit var btn_check_in:Button
     lateinit var btn_check_out: Button
+    lateinit var btn_clear_all:Button
+    lateinit var switch_toggle:SwitchCompat
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,6 +56,8 @@ class HomeActivity : AppCompatActivity() {
         val btn_sign_out = findViewById<Button>(R.id.btn_sign_out)
         btn_check_in = findViewById(R.id.btn_check_in)
         btn_check_out = findViewById(R.id.btn_check_out)
+        btn_clear_all=findViewById(R.id.btn_clear_all)
+        switch_toggle=findViewById(R.id.switch_toggle)
         recyclerView = findViewById(R.id.rv_login_details)
 
 
@@ -66,44 +70,70 @@ class HomeActivity : AppCompatActivity() {
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
+        SharedPrefObject.init(this)
+        val lastEnabledId=SharedPrefObject.getLastEnabledButton()
+
+        if(lastEnabledId==-1)//activity initialised first time
+        {
+            SharedPrefObject.putLastEnabledButton(SharedprefConstant.last_enabled_button,R.id.btn_check_in)
+            btn_check_in.isEnabled=true
+            btn_check_out.isEnabled=false
+        }
+        else//activty has been initialized previous button enabled to be preserved
+        {
+            if(lastEnabledId==R.id.btn_check_in)
+            {
+                btn_check_in.isEnabled=true
+                btn_check_out.isEnabled=false
+            }
+            else
+            {
+                btn_check_in.isEnabled=false
+                btn_check_out.isEnabled=true
+            }
+        }
+
         btn_sign_out.setOnClickListener { userSignOut() }
-
-//        SharedPrefObject.init(this)
-//        val lastEnabledId=SharedPrefObject.getLastEnabledButton()
-//        if(lastEnabledId==-1)//activity initialised first time
-//        {
-//            SharedPrefObject.putLastEnabledButton(SharedprefConstant.last_enabled_button,R.id.btn_check_in)
-//            btn_check_in.isEnabled=true
-//            btn_check_out.isEnabled=false
-//        }
-//        else//activty has been initialized previous button enabled to be preserved
-//        {
-//            if(lastEnabledId==R.id.btn_check_in)
-//            {
-//                btn_check_in.isEnabled=true
-//                btn_check_out.isEnabled=false
-//            }
-//            else
-//            {
-//                btn_check_in.isEnabled=false
-//                btn_check_out.isEnabled=true
-//            }
-//        }
         btn_check_in.setOnClickListener { userCheckIn() }
+        btn_check_out.setOnClickListener { userCheckOut() }
+        btn_clear_all.setOnClickListener { deleteLoginHistory() }
+        switch_toggle.setOnCheckedChangeListener { buttonView, isChecked ->
+            if(isChecked) {
+                company_latitude = 28.4287
+                company_longitude = 77.0370
+            }
+            else {
+                company_latitude = 28.4197
+                company_longitude = 77.0386
+            }
+        }
+    }
 
-        //btn_check_out.setOnClickListener { userCheckOut() }
+    private fun deleteLoginHistory() {
+        CoroutineScope(Dispatchers.IO).launch {
+            DatabaseConst.database.loginDetailsDao().deleteAllLoginDetails()
+            withContext(Dispatchers.Main)
+            {
+                showTheDetailsInRecyclerView()
+            }
+        }
     }
 
     private fun userCheckOut()
     {
         val getCurrentTime=getCurrentTime()
         CoroutineScope(Dispatchers.IO).launch {
-            DatabaseConst
+           val dao= DatabaseConst
                 .database
                 .loginDetailsDao()
-                .updateTheCheckOutTime(const_id, getCurrentTime)
+            val lastRowId=dao.getLastLoginDetailId()
+            dao.updateTheCheckOutTime(lastRowId, getCurrentTime)
+            withContext(Dispatchers.Main)
+            {
+                showTheDetailsInRecyclerView()
+            }
         }
-        showTheDetailsInRecyclerView()
+
         //shared preferences for button
         SharedPrefObject.init(this@HomeActivity)
         SharedPrefObject.putLastEnabledButton(SharedprefConstant.last_enabled_button,R.id.btn_check_in)
@@ -114,7 +144,6 @@ class HomeActivity : AppCompatActivity() {
 
     private fun userCheckIn() {
         val permissionGranted = checkForLocationPermission()
-        Toast.makeText(this, "permission granted +${permissionGranted}", Toast.LENGTH_SHORT).show()
         if (!permissionGranted) {//agar permission nhi mili to prompt dalo
             ActivityCompat.requestPermissions(
                 this,
@@ -124,7 +153,7 @@ class HomeActivity : AppCompatActivity() {
                 LOCATION_PERMISSION_REQUEST_CODE
             )
         }
-        if(true) {
+
             fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
                 if (location != null) {
                     val results = FloatArray(1)
@@ -141,47 +170,42 @@ class HomeActivity : AppCompatActivity() {
 
                         addLoginDetailInRoom(location)
 
-
-//                    SharedPrefObject.init(this@HomeActivity)
-//                    SharedPrefObject.putLastEnabledButton(SharedprefConstant.last_enabled_button,R.id.btn_check_out)
-//                    btn_check_out.isEnabled=true
-//                    btn_check_in.isEnabled=false
-                        Toast.makeText(this, "checked in succesfully...fused", Toast.LENGTH_SHORT)
-                            .show()
+                        SharedPrefObject.init(this@HomeActivity)
+                        SharedPrefObject.putLastEnabledButton(
+                            SharedprefConstant.last_enabled_button,
+                            R.id.btn_check_out
+                        )
+                        btn_check_out.isEnabled = true
+                        btn_check_in.isEnabled = false
                     } else {
                         Toast.makeText(
                             this,
-                            "Not allowed to check in. ${distanceInMeters}",
+                            "You are too far away to check in",
                             Toast.LENGTH_SHORT
                         ).show()
                     }
-
                     showTheDetailsInRecyclerView()
                 } else {
                     Toast.makeText(this, "last known location is not available", Toast.LENGTH_SHORT)
                         .show()
                 }
             }
-        }
     }
 
     private fun showTheDetailsInRecyclerView()
     {
         CoroutineScope(Dispatchers.IO).launch {
-            val updatedList = DatabaseConst.database.loginDetailsDao()
-                .getAllLoginDetails() // Retrieve the updated list from the database
+            val updatedList = DatabaseConst.database.loginDetailsDao().getAllLoginDetails() // Retrieve the updated list from the database
             withContext(Dispatchers.Main)
             {
-                Toast.makeText(this@HomeActivity,"fdf",Toast.LENGTH_SHORT).show()
                 adapter.updateList(updatedList)
             }
         }
-      //  Toast.makeText(this, "recycler", Toast.LENGTH_SHORT).show()
     }
 
     private fun addLoginDetailInRoom(userLocation: Location)
     {
-        Toast.makeText(this, "room added", Toast.LENGTH_SHORT).show()
+
         val check_in_time=getCurrentTime()
         val latitude=userLocation.latitude
         val longitude=userLocation.longitude
@@ -195,7 +219,6 @@ class HomeActivity : AppCompatActivity() {
         CoroutineScope(Dispatchers.IO).launch {
             val dao = DatabaseConst.database.loginDetailsDao()
             dao.insertLoginDetail(login_detail_check_in)
-            const_id++;
         }
     }
 
