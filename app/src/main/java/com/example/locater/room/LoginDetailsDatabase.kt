@@ -9,7 +9,6 @@ import androidx.room.RoomDatabase
 abstract class LoginDetailsDatabase:RoomDatabase() {
 
     abstract fun loginDetailsDao():LoginDetailsDao
-
     companion object {
         @Volatile
         private var INSTANCE: LoginDetailsDatabase? = null
