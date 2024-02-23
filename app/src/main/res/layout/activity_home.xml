@@ -26,33 +26,32 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="20dp"
         android:orientation="horizontal"
+        android:weightSum="2"
+        app:layout_constraintBottom_toTopOf="@id/ll_login_time"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tv_user_dashboard"
-        app:layout_constraintBottom_toTopOf="@id/ll_login_time"
-        android:weightSum="2"
-        >
+        app:layout_constraintTop_toBottomOf="@id/tv_user_dashboard">
 
         <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/btn_check_in_day"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_margin="4dp"
+            android:layout_weight="1"
             android:background="@drawable/gmail_bg"
             android:elevation="8dp"
             android:padding="8dp"
-            android:layout_margin="4dp"
-            android:layout_weight="1"
             android:text="Check In For The Day" />
 
         <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/btn_check_out_day"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_margin="4dp"
+            android:layout_weight="1"
             android:background="@drawable/gmail_bg"
             android:elevation="8dp"
             android:padding="6dp"
-            android:layout_margin="4dp"
-            android:layout_weight="1"
             android:text="Check Out For The day" />
     </LinearLayout>
 
@@ -60,33 +59,31 @@
         android:id="@+id/ll_login_time"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
         android:layout_marginStart="10dp"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/ll_buttons_1"
-        app:layout_constraintBottom_toTopOf="@id/ll_tv"
+        android:orientation="horizontal"
         android:weightSum="2"
-        >
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="LOGIN TIME: "
-        android:textColor="@color/black"
-        android:textSize="12sp"
-        android:textStyle="bold"
-        android:gravity="center"
-        />
-    <TextView
-        android:id="@+id/tv_login_time"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textColor="@color/black"
-        android:textSize="12sp"
-        android:textStyle="bold"
-        android:gravity="center"
-        />
-    </LinearLayout>
+        app:layout_constraintBottom_toTopOf="@id/ll_tv"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/ll_buttons_1">
 
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="LOGIN TIME: "
+            android:textColor="@color/black"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tv_login_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:textColor="@color/black"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+    </LinearLayout>
 
     <LinearLayout
         android:id="@+id/ll_tv"
@@ -212,44 +209,5 @@
             android:elevation="8dp"
             android:text="Check Out" />
     </LinearLayout>
-
-
-    <!--    <androidx.appcompat.widget.AppCompatButton-->
-    <!--        android:id="@+id/btn_clear_all"-->
-    <!--        android:layout_width="wrap_content"-->
-    <!--        android:layout_height="wrap_content"-->
-    <!--        android:text="Clear All"-->
-    <!--        app:layout_constraintBottom_toBottomOf="parent"-->
-    <!--        app:layout_constraintLeft_toLeftOf="parent"-->
-    <!--        app:layout_constraintTop_toBottomOf="@id/scroll"-->
-    <!--        app:layout_constraintRight_toLeftOf="@id/ll_toggle"-->
-    <!--        android:layout_marginBottom="56dp"-->
-    <!--        android:background="@drawable/gmail_bg"-->
-    <!--        android:elevation="8dp"-->
-    <!--        android:layout_margin="12dp"-->
-    <!--        />-->
-    <!--<LinearLayout-->
-    <!--    android:id="@+id/ll_toggle"-->
-    <!--    android:layout_width="wrap_content"-->
-    <!--    android:layout_height="wrap_content"-->
-    <!--    app:layout_constraintTop_toBottomOf="@id/scroll"-->
-    <!--    app:layout_constraintLeft_toRightOf="@id/btn_clear_all"-->
-    <!--    app:layout_constraintRight_toRightOf="parent"-->
-    <!--    android:weightSum="2"-->
-    <!--    app:layout_constraintBottom_toBottomOf="parent">-->
-    <!--    <TextView-->
-    <!--        android:id="@+id/toggle_button_label"-->
-    <!--        android:layout_width="wrap_content"-->
-    <!--        android:layout_height="wrap_content"-->
-    <!--        android:gravity="center"-->
-    <!--        android:layout_weight="1"-->
-    <!--        android:text="@string/toggle_button" />-->
-
-    <!--    <androidx.appcompat.widget.SwitchCompat-->
-    <!--        android:id="@+id/switch_toggle"-->
-    <!--        android:layout_width="wrap_content"-->
-    <!--        android:layout_weight="1"-->
-    <!--        android:layout_height="wrap_content"/>-->
-    <!--</LinearLayout>-->
 
 </androidx.constraintlayout.widget.ConstraintLayout>

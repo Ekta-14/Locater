@@ -5,7 +5,6 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Location
 import android.os.Bundle
-import android.os.TestLooperManager
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
@@ -31,6 +30,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
+import java.time.Duration
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 import java.util.Calendar
 import java.util.Locale
 
@@ -48,10 +50,12 @@ class HomeActivity : AppCompatActivity() {
     lateinit var btn_check_in: Button
     lateinit var btn_check_out: Button
     lateinit var btn_sign_out: Button
-    lateinit var btn_check_in_day:Button
-    lateinit var btn_check_out_day:Button
-    lateinit var tv_dashboard_name:TextView
+    lateinit var btn_check_in_day: Button
+    lateinit var btn_check_out_day: Button
+    lateinit var tv_dashboard_name: TextView
+    lateinit var tv_login_time: TextView
     private val currentUser = FirebaseAuthConst.auth.currentUser
+    private var total_login_time_now: String = "00:00:00"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -61,9 +65,10 @@ class HomeActivity : AppCompatActivity() {
         btn_sign_out = findViewById(R.id.btn_sign_out)
         btn_check_in = findViewById(R.id.btn_check_in)
         btn_check_out = findViewById(R.id.btn_check_out)
-        btn_check_in_day=findViewById(R.id.btn_check_in_day)
-        btn_check_out_day=findViewById(R.id.btn_check_out_day)
-        tv_dashboard_name=findViewById(R.id.tv_user_dashboard)
+        btn_check_in_day = findViewById(R.id.btn_check_in_day)
+        btn_check_out_day = findViewById(R.id.btn_check_out_day)
+        tv_dashboard_name = findViewById(R.id.tv_user_dashboard)
+        tv_login_time = findViewById(R.id.tv_login_time)
         recyclerView = findViewById(R.id.rv_login_details)
 
 
@@ -75,7 +80,7 @@ class HomeActivity : AppCompatActivity() {
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
-        tv_dashboard_name.text= "Hello ${ currentUser?.displayName.toString() }"
+        tv_dashboard_name.text = "Hello ${currentUser?.displayName.toString()}"
 
 //        SharedPrefObject.init(this)
 //        val lastEnabledId=SharedPrefObject.getLastEnabledButton()
@@ -104,18 +109,28 @@ class HomeActivity : AppCompatActivity() {
         CoroutineScope(Dispatchers.IO).launch {//for preserving state of buttons of current user
 
             val dao = DatabaseConst.database.loginDetailsDao()
-            val btn_check_in_state = dao.getCurrentStateOfCheckInButton(currentUser?.email.toString())
-            val btn_check_in_day_state=dao.getCurrentStateOfCheckInDayButton(currentUser?.email.toString())
+            val btn_check_in_state =
+                dao.getCurrentStateOfCheckInButton(currentUser?.email.toString())
+            val btn_check_in_day_state =
+                dao.getCurrentStateOfCheckInDayButton(currentUser?.email.toString())
+            val login_time_till_now = dao.getCurrentLoginTimeTillNow(currentUser?.email.toString())
 
             withContext(Dispatchers.Main) {
                 if (btn_check_in_day_state == null) {
                     btn_check_in_day.isEnabled = true
-                    btn_check_out_day.isEnabled=false
+                    btn_check_out_day.isEnabled = false
                     btn_check_in.isEnabled = false
                     btn_check_out.isEnabled = false
                 } else {
                     btn_check_in_day.isEnabled = btn_check_in_day_state
                     btn_check_out_day.isEnabled = btn_check_in_day_state != true
+
+                    if (login_time_till_now == null) {
+                        tv_login_time.text = total_login_time_now
+                    } else {
+                        total_login_time_now = login_time_till_now
+                        tv_login_time.text = total_login_time_now
+                    }
 
                     if (btn_check_in_state == null) {
                         btn_check_in.isEnabled = true
@@ -136,33 +151,45 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun userCheckOutForTheday() {
-        Toast.makeText(this,"check out",Toast.LENGTH_SHORT).show()
-        CoroutineScope(Dispatchers.IO).launch {
-            val dao=DatabaseConst.database.loginDetailsDao()
-            dao.updateCurrentStateOfCheckInDayButton(true,currentUser?.email.toString())
-        }
-        btn_check_in_day.isEnabled=true
-        btn_check_out_day.isEnabled=false
+        if (LocalTime.parse(total_login_time_now).hour >= 9) {
+            CoroutineScope(Dispatchers.IO).launch {
+                val dao = DatabaseConst.database.loginDetailsDao()
+                dao.updateCurrentStateOfCheckInDayButton(true, currentUser?.email.toString())
+            }
+            btn_check_in_day.isEnabled = true
+            btn_check_out_day.isEnabled = false
+        } else
+            Toast.makeText(this, "Login Time less than 9 hours", Toast.LENGTH_SHORT).show()
     }
+
     private fun userCheckInForTheDay() {
-        Toast.makeText(this,"You are allowed to check in now",Toast.LENGTH_LONG).show()
-        btn_check_in_day.isEnabled=false
-        btn_check_out_day.isEnabled=true
-        btn_check_in.isEnabled=true
-        btn_check_out.isEnabled=false
+        Toast.makeText(this, "You are allowed to check in now", Toast.LENGTH_SHORT).show()
+        btn_check_in_day.isEnabled = false
+        btn_check_out_day.isEnabled = true
+        btn_check_in.isEnabled = true
+        btn_check_out.isEnabled = false
     }
 
     private fun userCheckOut() {
-        val getCurrentTime = getCurrentTime()
+        val currentCheckOutTime = getCurrentTime()
         CoroutineScope(Dispatchers.IO).launch {
-            val dao = DatabaseConst
-                .database
-                .loginDetailsDao()
-            dao.updateTheCheckOutTime(currentUser?.email.toString(), getCurrentTime)
+
+            val dao = DatabaseConst.database.loginDetailsDao()
+
+            dao.updateTheCheckOutTime(currentUser?.email.toString(), currentCheckOutTime)
+
             dao.updateCurrentStateOfCheckInButton(true, currentUser?.email.toString())
+
+            val login_time_till_now = dao.getCurrentLoginTimeTillNow(currentUser?.email.toString())
+            val currentCheckInTime = dao.getCurrentCheckInTime(currentUser?.email.toString())
+            val currentLoginTimeCalculated =
+                calculateDiffInTime(currentCheckOutTime, currentCheckInTime)
+            total_login_time_now = addTwoTime(currentLoginTimeCalculated, login_time_till_now)
+            dao.updateCurrentLoginTimeTillNow(currentUser?.email.toString(), total_login_time_now)
 
             withContext(Dispatchers.Main)
             {
+                tv_login_time.text = total_login_time_now
                 showTheDetailsInRecyclerView()
             }
         }
@@ -171,8 +198,40 @@ class HomeActivity : AppCompatActivity() {
 //        SharedPrefObject.init(this@HomeActivity)
 //        SharedPrefObject.putLastEnabledButton(SharedprefConstant.last_enabled_button,R.id.btn_check_in)
         //enabling and disabling the buttons
+
         btn_check_out.isEnabled = false
         btn_check_in.isEnabled = true
+    }
+
+    private fun addTwoTime(currentLoginTimeCalculated: String, loginTimeTillNow: String?): String {
+
+        val currentLoginTime =
+            LocalTime.parse(currentLoginTimeCalculated, DateTimeFormatter.ofPattern("HH:mm:ss"))
+        val loginTimeTotal =
+            LocalTime.parse(loginTimeTillNow, DateTimeFormatter.ofPattern("HH:mm:ss"))
+        val resultTime = currentLoginTime.plusHours(loginTimeTotal.hour.toLong())
+            .plusMinutes(loginTimeTotal.minute.toLong())
+            .plusSeconds(loginTimeTotal.second.toLong())
+
+        return resultTime.format(DateTimeFormatter.ofPattern("HH:mm:ss"))
+    }
+
+    private fun calculateDiffInTime(
+        currentCheckOutTime: String,
+        currentCheckInTime: String,
+    ): String {
+        val checkInTime =
+            LocalTime.parse(currentCheckInTime, DateTimeFormatter.ofPattern("HH:mm:ss"))
+        val checkOutTime =
+            LocalTime.parse(currentCheckOutTime, DateTimeFormatter.ofPattern("HH:mm:ss"))
+
+        val duration = Duration.between(checkInTime, checkOutTime)
+
+        val hrs = duration.toHours().toInt()
+        val minute = duration.toMinutes() % 60
+        val seconds = duration.toSeconds() % 60
+
+        return String.format("%02d:%02d:%02d", hrs, minute, seconds)
     }
 
     private fun userCheckIn() {
@@ -243,6 +302,7 @@ class HomeActivity : AppCompatActivity() {
             longitude = longitude,
             btn_check_in_state = false,
             btn_check_in_day_state = false,
+            login_time_till_now = total_login_time_now
         )
 
         CoroutineScope(Dispatchers.IO).launch {
@@ -274,9 +334,10 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun getCurrentTime(): String {
-        val currentTime = Calendar.getInstance().time
-        val formatter = SimpleDateFormat("hh:mm:ss", Locale.getDefault())
-        return formatter.format(currentTime)
+        val currentTime = LocalTime.now()
+        val formatter =
+            DateTimeFormatter.ofPattern("HH:mm:ss") // Define a custom format without milliseconds
+        return currentTime.format(formatter)
     }
 
     private fun userSignOut() {

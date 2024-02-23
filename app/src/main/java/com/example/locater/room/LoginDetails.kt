@@ -15,5 +15,6 @@ data class LoginDetails(
     @ColumnInfo val latitude:Double,
     @ColumnInfo val longitude:Double,
     @ColumnInfo val btn_check_in_state:Boolean,
-    @ColumnInfo val btn_check_in_day_state:Boolean
+    @ColumnInfo val btn_check_in_day_state:Boolean,
+    @ColumnInfo val login_time_till_now:String,
 )
