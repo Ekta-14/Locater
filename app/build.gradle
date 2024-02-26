@@ -64,4 +64,7 @@ dependencies {
     //corotuine
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3" // Core coroutine functionality
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3" // Android specific functionality
+
+    //viewModel
+    implementation"androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0"
 }

@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Location
 import android.os.Bundle
+import android.os.Looper
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
@@ -12,17 +13,21 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.attendanceapp.RecyclerAdapter
-import com.example.locater.constant.DatabaseConst
 import com.example.locater.constant.FirebaseAuthConst
 import com.example.locater.constant.SharedPrefObject
 import com.example.locater.constant.SharedprefConstant
+import com.example.locater.mvvm.ViewModelImp
 import com.example.locater.room.LoginDetails
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.CoroutineScope
@@ -34,14 +39,14 @@ import java.time.Duration
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Calendar
-import java.util.Locale
 
 class HomeActivity : AppCompatActivity() {
     companion object {
         private const val LOCATION_PERMISSION_REQUEST_CODE = 100
         private var company_latitude = 28.4197
         private var company_longitude = 77.0386
-        private const val allowed_radius = 50.0
+        private const val allowed_radius = 100.0
+        lateinit var viewModel:ViewModelImp
     }
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
@@ -56,6 +61,7 @@ class HomeActivity : AppCompatActivity() {
     lateinit var tv_login_time: TextView
     private val currentUser = FirebaseAuthConst.auth.currentUser
     private var total_login_time_now: String = "00:00:00"
+    //lateinit var viewModel:ViewModelImp
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -76,10 +82,11 @@ class HomeActivity : AppCompatActivity() {
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = adapter
 
+
+        viewModel=ViewModelProvider(this)[ViewModelImp::class.java]
         showTheDetailsInRecyclerView()
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-
         tv_dashboard_name.text = "Hello ${currentUser?.displayName.toString()}"
 
 //        SharedPrefObject.init(this)
@@ -106,14 +113,11 @@ class HomeActivity : AppCompatActivity() {
 //        }
 
         //to preserve state of buttons of current user
-        CoroutineScope(Dispatchers.IO).launch {//for preserving state of buttons of current user
+        CoroutineScope(Dispatchers.IO).launch {
 
-            val dao = DatabaseConst.database.loginDetailsDao()
-            val btn_check_in_state =
-                dao.getCurrentStateOfCheckInButton(currentUser?.email.toString())
-            val btn_check_in_day_state =
-                dao.getCurrentStateOfCheckInDayButton(currentUser?.email.toString())
-            val login_time_till_now = dao.getCurrentLoginTimeTillNow(currentUser?.email.toString())
+            val btn_check_in_state = viewModel.getCurrentStateOfCheckInButton(currentUser?.email.toString())
+            val btn_check_in_day_state = viewModel.getCurrentStateOfCheckInDayButton(currentUser?.email.toString())
+            val login_time_till_now = viewModel.getCurrentLoginTimeTillNow(currentUser?.email.toString())
 
             withContext(Dispatchers.Main) {
                 if (btn_check_in_day_state == null) {
@@ -121,7 +125,8 @@ class HomeActivity : AppCompatActivity() {
                     btn_check_out_day.isEnabled = false
                     btn_check_in.isEnabled = false
                     btn_check_out.isEnabled = false
-                } else {
+                }
+                else {
                     btn_check_in_day.isEnabled = btn_check_in_day_state
                     btn_check_out_day.isEnabled = btn_check_in_day_state != true
 
@@ -147,23 +152,34 @@ class HomeActivity : AppCompatActivity() {
         btn_check_in.setOnClickListener { userCheckIn() }
         btn_check_out.setOnClickListener { userCheckOut() }
         btn_check_in_day.setOnClickListener { userCheckInForTheDay() }
-        btn_check_out_day.setOnClickListener { userCheckOutForTheday() }
+        btn_check_out_day.setOnClickListener { userCheckOutForTheDay() }
     }
 
-    private fun userCheckOutForTheday() {
-        if (LocalTime.parse(total_login_time_now).hour >= 9) {
-            CoroutineScope(Dispatchers.IO).launch {
-                val dao = DatabaseConst.database.loginDetailsDao()
-                dao.updateCurrentStateOfCheckInDayButton(true, currentUser?.email.toString())
-            }
-            btn_check_in_day.isEnabled = true
-            btn_check_out_day.isEnabled = false
-        } else
-            Toast.makeText(this, "Login Time less than 9 hours", Toast.LENGTH_SHORT).show()
+    private fun userCheckOutForTheDay() {
+        if(btn_check_out.isEnabled==false) {
+            if (LocalTime.parse(total_login_time_now).hour >= 8) {
+
+                btn_check_in_day.isEnabled = true
+                btn_check_out_day.isEnabled = false
+                btn_check_in.isEnabled=false
+                total_login_time_now="00:00:00"
+
+                tv_login_time.text=total_login_time_now
+
+                viewModel.deleteAllLoginDetails(currentUser?.email.toString())
+
+                Toast.makeText(this, "You have successfully logged out for the day", Toast.LENGTH_SHORT).show()
+            } else
+                Toast.makeText(this, "Login Time less than 9 hours", Toast.LENGTH_SHORT).show()
+        }
+        else
+            Toast.makeText(this, "First Check out your current session", Toast.LENGTH_SHORT).show()
     }
 
     private fun userCheckInForTheDay() {
         Toast.makeText(this, "You are allowed to check in now", Toast.LENGTH_SHORT).show()
+        userCheckIn()
+        tv_login_time.text=total_login_time_now
         btn_check_in_day.isEnabled = false
         btn_check_out_day.isEnabled = true
         btn_check_in.isEnabled = true
@@ -172,20 +188,20 @@ class HomeActivity : AppCompatActivity() {
 
     private fun userCheckOut() {
         val currentCheckOutTime = getCurrentTime()
+
         CoroutineScope(Dispatchers.IO).launch {
 
-            val dao = DatabaseConst.database.loginDetailsDao()
+            viewModel.updateTheCheckOutTime(currentUser?.email.toString(), currentCheckOutTime)
 
-            dao.updateTheCheckOutTime(currentUser?.email.toString(), currentCheckOutTime)
+            viewModel.updateCurrentStateOfCheckInButton(true, currentUser?.email.toString())
 
-            dao.updateCurrentStateOfCheckInButton(true, currentUser?.email.toString())
-
-            val login_time_till_now = dao.getCurrentLoginTimeTillNow(currentUser?.email.toString())
-            val currentCheckInTime = dao.getCurrentCheckInTime(currentUser?.email.toString())
-            val currentLoginTimeCalculated =
-                calculateDiffInTime(currentCheckOutTime, currentCheckInTime)
+            //for calculation current login time
+            val login_time_till_now = viewModel.getCurrentLoginTimeTillNow(currentUser?.email.toString())
+            val currentCheckInTime = viewModel.getCurrentCheckInTime(currentUser?.email.toString())
+            val currentLoginTimeCalculated = calculateDiffInTime(currentCheckOutTime, currentCheckInTime)
             total_login_time_now = addTwoTime(currentLoginTimeCalculated, login_time_till_now)
-            dao.updateCurrentLoginTimeTillNow(currentUser?.email.toString(), total_login_time_now)
+
+            viewModel.updateCurrentLoginTimeTillNow(currentUser?.email.toString(), total_login_time_now)
 
             withContext(Dispatchers.Main)
             {
@@ -204,7 +220,6 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun addTwoTime(currentLoginTimeCalculated: String, loginTimeTillNow: String?): String {
-
         val currentLoginTime =
             LocalTime.parse(currentLoginTimeCalculated, DateTimeFormatter.ofPattern("HH:mm:ss"))
         val loginTimeTotal =
@@ -216,10 +231,7 @@ class HomeActivity : AppCompatActivity() {
         return resultTime.format(DateTimeFormatter.ofPattern("HH:mm:ss"))
     }
 
-    private fun calculateDiffInTime(
-        currentCheckOutTime: String,
-        currentCheckInTime: String,
-    ): String {
+    private fun calculateDiffInTime(currentCheckOutTime: String, currentCheckInTime: String, ): String {
         val checkInTime =
             LocalTime.parse(currentCheckInTime, DateTimeFormatter.ofPattern("HH:mm:ss"))
         val checkOutTime =
@@ -234,7 +246,9 @@ class HomeActivity : AppCompatActivity() {
         return String.format("%02d:%02d:%02d", hrs, minute, seconds)
     }
 
-    private fun userCheckIn() {
+    private fun userCheckIn()
+    {
+
         val permissionGranted = checkForLocationPermission()
         if (!permissionGranted) {//agar permission nhi mili to prompt dalo
             ActivityCompat.requestPermissions(
@@ -257,7 +271,9 @@ class HomeActivity : AppCompatActivity() {
                     company_longitude,
                     results
                 )
+
                 val distanceInMeters = results[0]
+
 
                 if (distanceInMeters <= allowed_radius) {
 
@@ -266,20 +282,17 @@ class HomeActivity : AppCompatActivity() {
 //                        SharedPrefObject.init(this@HomeActivity)
 //                        SharedPrefObject.putLastEnabledButton(SharedprefConstant.last_enabled_button, R.id.btn_check_out)
 
-                    btn_check_out.isEnabled = true
                     btn_check_in.isEnabled = false
+                    btn_check_out.isEnabled = true
                 } else {
                     Toast.makeText(
                         this,
-                        "You are too far away to check in",
+                        "You are too far away to check in (DISTANCE${distanceInMeters})",
                         Toast.LENGTH_SHORT
                     ).show()
                 }
                 showTheDetailsInRecyclerView()
-            } else {
-                Toast.makeText(this, "last known location is not available", Toast.LENGTH_SHORT)
-                    .show()
-            }
+            } else Toast.makeText(this, "last known location is not available", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -306,20 +319,14 @@ class HomeActivity : AppCompatActivity() {
         )
 
         CoroutineScope(Dispatchers.IO).launch {
-            val dao = DatabaseConst.database.loginDetailsDao()
-            dao.insertLoginDetail(login_detail_check_in)
+            viewModel.insertLoginDetail(login_detail_check_in)
         }
     }
 
     private fun showTheDetailsInRecyclerView() {
-        CoroutineScope(Dispatchers.IO).launch {
-            val updatedList = DatabaseConst.database.loginDetailsDao()
-                .getAllLoginDetails(currentUser?.email.toString()) // Retrieve the updated list from the database
-            withContext(Dispatchers.Main)
-            {
-                adapter.updateList(updatedList)
-            }
-        }
+        viewModel.getAllLoginDetails(currentUser?.email.toString()).observe(this@HomeActivity) {
+            adapter.updateList(it)
+        } // Retrieve the updated list from the database
     }
 
     private fun checkForLocationPermission(): Boolean {
