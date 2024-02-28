@@ -104,6 +104,8 @@ class HomeActivity : AppCompatActivity() {
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
         tv_dashboard_name.text = "Hello ${currentUser?.displayName.toString()}"
 
+        //ekta has added a commit
+
 //        SharedPrefObject.init(this)
 //        val lastEnabledId=SharedPrefObject.getLastEnabledButton()
 //
