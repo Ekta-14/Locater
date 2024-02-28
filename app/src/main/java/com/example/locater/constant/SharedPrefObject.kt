@@ -33,4 +33,13 @@ object SharedPrefObject {
        return  preferences.getInt(SharedprefConstant.last_enabled_button,-1)
     }
 
+    fun putLastToggleState(key:String,toggle_state:Boolean)
+    {
+        preferences.edit().putBoolean(SharedprefConstant.last_toggle_state,toggle_state).apply()
+    }
+    fun getLastToogleState(key: String):Boolean
+    {
+        return preferences.getBoolean(SharedprefConstant.last_toggle_state,false)
+    }
+
 }

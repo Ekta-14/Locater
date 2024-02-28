@@ -4,18 +4,29 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Location
+import android.net.Uri
 import android.os.Bundle
 import android.os.Looper
+import android.text.InputType
+import android.util.Log
 import android.widget.Button
+import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.SwitchCompat
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.android.volley.Request
+import com.android.volley.Response
+import com.android.volley.toolbox.StringRequest
+import com.android.volley.toolbox.Volley
 import com.example.attendanceapp.RecyclerAdapter
 import com.example.locater.constant.FirebaseAuthConst
 import com.example.locater.constant.SharedPrefObject
@@ -39,16 +50,17 @@ import java.time.Duration
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Calendar
+import java.util.regex.Pattern
 
 class HomeActivity : AppCompatActivity() {
     companion object {
         private const val LOCATION_PERMISSION_REQUEST_CODE = 100
-        private var company_latitude = 28.4197
-        private var company_longitude = 77.0386
-        private const val allowed_radius = 100.0
+        private const val allowed_radius = 50.0
         lateinit var viewModel:ViewModelImp
     }
 
+    private var company_latitude:Double=28.4197
+    private var company_longitude:Double=77.0386
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: RecyclerAdapter
@@ -59,8 +71,10 @@ class HomeActivity : AppCompatActivity() {
     lateinit var btn_check_out_day: Button
     lateinit var tv_dashboard_name: TextView
     lateinit var tv_login_time: TextView
+    lateinit var toggle_address:SwitchCompat
     private val currentUser = FirebaseAuthConst.auth.currentUser
     private var total_login_time_now: String = "00:00:00"
+    lateinit var fusedLocationProviderClient:FusedLocationProviderClient
     //lateinit var viewModel:ViewModelImp
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -76,7 +90,8 @@ class HomeActivity : AppCompatActivity() {
         tv_dashboard_name = findViewById(R.id.tv_user_dashboard)
         tv_login_time = findViewById(R.id.tv_login_time)
         recyclerView = findViewById(R.id.rv_login_details)
-
+        fusedLocationProviderClient=LocationServices.getFusedLocationProviderClient(this)
+        toggle_address=findViewById(R.id.toggle_update_location)
 
         adapter = RecyclerAdapter()
         recyclerView.layoutManager = LinearLayoutManager(this)
@@ -148,11 +163,77 @@ class HomeActivity : AppCompatActivity() {
             }
         }
 
+        SharedPrefObject.init(this)
+        val toggle_state=SharedPrefObject.getLastToogleState(SharedprefConstant.last_toggle_state)
+        toggle_address.isChecked=toggle_state
+
         btn_sign_out.setOnClickListener { userSignOut() }
         btn_check_in.setOnClickListener { userCheckIn() }
         btn_check_out.setOnClickListener { userCheckOut() }
         btn_check_in_day.setOnClickListener { userCheckInForTheDay() }
         btn_check_out_day.setOnClickListener { userCheckOutForTheDay() }
+        toggle_address.setOnCheckedChangeListener{buttonView,isChecked->
+            if(isChecked){
+                showLocationInputDialog()
+                SharedPrefObject.putLastToggleState(SharedprefConstant.last_toggle_state,true)
+            }
+            else
+            {
+                Toast.makeText(this@HomeActivity,"Company location updated back to investwell",Toast.LENGTH_LONG).show()
+                company_latitude=28.4197
+                company_longitude=77.0386
+                SharedPrefObject.putLastToggleState(SharedprefConstant.last_toggle_state,false)
+            }
+        }
+    }
+
+    private fun showLocationInputDialog() {
+        val inputLayout = LinearLayout(this)
+        inputLayout.orientation = LinearLayout.VERTICAL
+        val layoutParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        )
+        layoutParams.setMargins(
+            resources.getDimensionPixelSize(R.dimen.dialog_margin),
+            0,
+            resources.getDimensionPixelSize(R.dimen.dialog_margin),
+            0
+        )
+        val latitudeInput = EditText(this)
+        latitudeInput.hint = "Latitude"
+        inputLayout.addView(latitudeInput, layoutParams)
+        val longitudeInput = EditText(this)
+        longitudeInput.hint = "Longitude"
+        inputLayout.addView(longitudeInput, layoutParams)
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("Update Company Location")
+            .setView(inputLayout)
+            .setPositiveButton("Update") { dialogInterface, _ ->
+                val latitude = latitudeInput.text.toString().toDoubleOrNull()
+                val longitude = longitudeInput.text.toString().toDoubleOrNull()
+
+                if (latitude != null && longitude != null) {
+                    // Update company location with input latitude and longitude
+                    company_latitude = latitude
+                    company_longitude = longitude
+
+                    // Optionally, you may want to notify the user or perform further actions.
+                    Toast.makeText(this, "Company location updated.", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "Invalid latitude or longitude.", Toast.LENGTH_SHORT).show()
+                }
+
+                dialogInterface.dismiss()
+            }
+            .setNegativeButton("Cancel") { dialogInterface, _ ->
+                dialogInterface.dismiss()
+                toggle_address.isChecked=false
+            }
+            .create()
+
+        dialog.show()
     }
 
     private fun userCheckOutForTheDay() {
@@ -246,9 +327,7 @@ class HomeActivity : AppCompatActivity() {
         return String.format("%02d:%02d:%02d", hrs, minute, seconds)
     }
 
-    private fun userCheckIn()
-    {
-
+    private fun userCheckIn() {
         val permissionGranted = checkForLocationPermission()
         if (!permissionGranted) {//agar permission nhi mili to prompt dalo
             ActivityCompat.requestPermissions(
@@ -260,41 +339,76 @@ class HomeActivity : AppCompatActivity() {
                 LOCATION_PERMISSION_REQUEST_CODE
             )
         }
+//
+//        fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
+//            if (location != null) {
+//                val results = FloatArray(1)
+//                Location.distanceBetween(
+//                    location.latitude,
+//                    location.longitude,
+//                    company_latitude,
+//                    company_longitude,
+//                    results
+//                )
+//
+//                val distanceInMeters = results[0]
+//
+//
+//                if (distanceInMeters <= allowed_radius) {
+//
+//                    addLoginDetailInRoom(location)
+//
+////                        SharedPrefObject.init(this@HomeActivity)
+////                        SharedPrefObject.putLastEnabledButton(SharedprefConstant.last_enabled_button, R.id.btn_check_out)
+//
+//                    btn_check_in.isEnabled = false
+//                    btn_check_out.isEnabled = true
+//                } else {
+//                    Toast.makeText(
+//                        this,
+//                        "You are too far away to check in (DISTANCE${distanceInMeters})",
+//                        Toast.LENGTH_SHORT
+//                    ).show()
+//                }
+//                showTheDetailsInRecyclerView()
+//            } else Toast.makeText(this, "last known location is not available", Toast.LENGTH_SHORT).show()
+//        }
+        fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, null)
+    }
 
-        fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
-            if (location != null) {
-                val results = FloatArray(1)
+    val locationRequest=LocationRequest.create()
+        .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
+        .setInterval(1000)
+
+    val locationCallback = object : LocationCallback() {
+        override fun onLocationResult(locationResult: LocationResult) {
+            for (location in locationResult.locations) {
+              val result=FloatArray(1)
                 Location.distanceBetween(
                     location.latitude,
                     location.longitude,
                     company_latitude,
                     company_longitude,
-                    results
+                    result
                 )
+                val distanceInMeters = result[0]
+//
 
-                val distanceInMeters = results[0]
-
-
-                if (distanceInMeters <= allowed_radius) {
-
+                if (distanceInMeters<= allowed_radius){
                     addLoginDetailInRoom(location)
-
-//                        SharedPrefObject.init(this@HomeActivity)
-//                        SharedPrefObject.putLastEnabledButton(SharedprefConstant.last_enabled_button, R.id.btn_check_out)
-
+                    fusedLocationProviderClient.removeLocationUpdates(this)
                     btn_check_in.isEnabled = false
                     btn_check_out.isEnabled = true
-                } else {
-                    Toast.makeText(
-                        this,
-                        "You are too far away to check in (DISTANCE${distanceInMeters})",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    break
                 }
-                showTheDetailsInRecyclerView()
-            } else Toast.makeText(this, "last known location is not available", Toast.LENGTH_SHORT).show()
+                else{
+                    Toast.makeText(this@HomeActivity,"You are not within the allowed radius",Toast.LENGTH_LONG).show()}
+                fusedLocationProviderClient.removeLocationUpdates(this)
+                break
+            }
         }
     }
+
 
     private fun addLoginDetailInRoom(userLocation: Location) {
 
