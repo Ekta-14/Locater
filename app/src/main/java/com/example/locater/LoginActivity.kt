@@ -30,6 +30,7 @@ class LoginActivity : AppCompatActivity() {
         val btn_googleLogin=findViewById<Button>(R.id.btn_google_login)
         btn_googleLogin.setOnClickListener { loginUsingGmail() }
     }
+    //ekta has commented
 
     //firebase methods
     private fun loginUsingGmail() {
