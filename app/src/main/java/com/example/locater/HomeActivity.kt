@@ -77,6 +77,9 @@ class HomeActivity : AppCompatActivity() {
     lateinit var fusedLocationProviderClient:FusedLocationProviderClient
     //lateinit var viewModel:ViewModelImp
 
+
+    //teru
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
