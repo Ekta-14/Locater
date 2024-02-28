@@ -18,7 +18,7 @@ class SplashScreenActivity : AppCompatActivity()
 
         SharedPrefObject.init(this)
         Handler().postDelayed({
-            val success= SharedPrefObject.getBooleanLogin(SharedprefConstant.isUserLoggedIn)
+            val success= SharedPrefObject.getLastToogleState(SharedprefConstant.isUserLoggedIn)
             if(success) {
                 startActivity(Intent(this, HomeActivity::class.java))
                 finish()
